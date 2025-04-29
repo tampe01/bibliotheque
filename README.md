@@ -1,7 +1,7 @@
 # bibliotheque
 Application de gestion d'une bibliothèque
 # 1/ recupération du projet sur github:
-git clone https://github.com/Treloneking/biblionsiaa.git
+git clone https://github.com/tampe01/bibliotheque.git
 
 # 2/ installation des dépendances:
 npm install
