@@ -24,7 +24,7 @@ const Login = ({ onLogin }) => {
         localStorage.setItem('Id_user', response.data.Id_user);
 
         // Vérifier le rôle de l'utilisateur
-        const isAdmin = response.data.Id_user === 'Bibliothequensia';
+        const isAdmin = response.data.Id_user === 'TAMPE';
         localStorage.setItem('role', isAdmin ? 'admin' : 'user');
         // Appeler la fonction onLogin pour mettre à jour l'état d'authentification dans App.jsx
         onLogin();

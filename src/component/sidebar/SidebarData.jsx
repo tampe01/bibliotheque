@@ -35,19 +35,26 @@ const SidebarData = ({ isAdmin }) => {
           hidden:!isAdmin
         },
         {
-            title: 'Livre',
+            title: 'Ajouter un livre',
             path: '/app/ajout-livre',
             icon: <IoIcons.IoIosBook/>,
             cName: 'nav-text',
             hidden: !isAdmin
          },
          {
-            title: 'Reserver',
-            path: '/app/reserver',
-            icon: <IoIcons.IoIosPaper/>,
-            cName: 'nav-text',
-            hidden: !isAdmin
-         }
+          title: 'Lister les livres',
+          path: '/app/liste-livre',
+          icon: <IoIcons.IoIosBook/>,
+          cName: 'nav-text',
+          hidden: !isAdmin
+        },
+        {
+          title: 'Reservation',
+          path: '/app/reserver',
+          icon: <IoIcons.IoIosPaper/>,
+          cName: 'nav-text',
+          hidden: !isAdmin
+        }
         
     ];
 

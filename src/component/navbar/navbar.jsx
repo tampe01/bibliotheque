@@ -36,7 +36,7 @@ function Navbar() {
         setBooks(response.data);
         // Vérifier si l'utilisateur est admin (exemple basique)
         const storedIdUser = localStorage.getItem('Id_user');
-        setIsAdmin(storedIdUser === 'Bibliothequensia');
+        setIsAdmin(storedIdUser === 'TAMPE');
       })
       .catch(error => console.error('Error fetching books:', error));
   }, []);
@@ -62,7 +62,7 @@ function Navbar() {
           </div>
           <marquee>
             <p className='bienvenue'>
-              <FaIcons.FaBook />Bienvenue à la Bibliothèque Numérique de NSIA Mr/Mme {capitalizeFirstLetter(Nom)} {capitalizeFirstLetter(Prenom)}<FaIcons.FaBook />
+              <FaIcons.FaBook />Bienvenue à la Bibliothèque Numérique en ligne Mr/Mme {capitalizeFirstLetter(Nom)} {capitalizeFirstLetter(Prenom)}<FaIcons.FaBook />
             </p>
           </marquee>
           <div className='nav-bar-icons'>

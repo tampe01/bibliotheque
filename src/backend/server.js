@@ -23,9 +23,11 @@ const schedule = require('node-schedule');
 const nodemailer = require('nodemailer');
 const port = 8000;
 const jwt = require('jsonwebtoken');
+const bcrypt = require("bcryptjs");
 const { authenticate } = require('ldap-authentication');
 const cors = require('cors');
 var ActiveDirectory = require('activedirectory');
+const { exit } = require('process');
 
 // Configuration de la connexion à la base de données
 let db;
@@ -69,9 +71,73 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cors());
 
+
+// Route d'inscription
+app.post("/register", async (req, res) => {
+  const { nom, prenom, email, password } = req.body;
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  try {
+
+      db.query('INSERT INTO utilisateur (Nom, Prenom, Email, Mot_de_passe) VALUES (?, ?, ?, ?)', [nom, prenom, email, hashedPassword], async function(error, results, fields) {
+      if (error) {
+        console.error('Erreur lors de l\intégration de l\'utilisateur dans la base de données :', error);
+        return res.status(500).json({ message: 'Erreur interne du serveur' });
+      }
+      console.log('gggggg')
+      console.log(results)
+
+      res.status(200).json({ message: "Utilisateur enregistré avec succès!", userId: results.insertId });
+    });
+
+  } catch (error) {
+    console.log(error);
+      res.status(500).json({ message: "Erreur lors de l'inscription", error });
+  }
+
+});
+
 // Route de connexion
+app.post("/login", async (req, res) => {
+  const { Id_user, Mot_de_passe } = req.body;
+
+  if (Id_user === 'Biblio' && Mot_de_passe === 'Biblio') {
+    // Créer un token JWT pour l'administrateur
+    const token = jwt.sign({ Id_user, Prenom: 'Administrateur', Nom: 'TAMPE' }, process.env.JWT_SECRET, { expiresIn: '2s' });
+    return res.status(200).json({ message: 'Connexion réussie en tant qu\'administrateur', token, Id_user: 'TAMPE', Prenom: 'Admin', Nom: 'TAMPE' });
+  }
+
+  try {
+    
+    db.query("SELECT * FROM utilisateur WHERE Email = ?", [Id_user], async function(error, results, fields) {
+      
+      if (error) {
+        console.error('Erreur lors de la vérification de l\'utilisateur dans la base de données :', error);
+        return res.status(500).json({ message: 'Erreur interne du serveur' });
+      }
+      // Si l'utilisateur n'existe pas dans la base de données
+      if (results.length === 0 || !(await bcrypt.compare(Mot_de_passe, results[0].Mot_de_passe))) {
+        return res.status(401).json({ message: "Identifiants incorrects" });
+      }
+
+      const existingUserId = results[0].Id_user;
+
+      // const token = jwt.sign({ Id_user: existingUserId, Id_user, Prenom: prenom, Nom: nom }, jwtSecret, { expiresIn: '5m' });
+      // return res.status(200).json({ message: 'Connexion réussie', token, Id_user: existingUserId, username, Prenom: prenom, Nom: nom });
+
+      const token = jwt.sign({ Id_user }, jwtSecret, { expiresIn: "1h" });
+      console.log(token)
+      res.json({ token });
+
+    });
+  } catch (error) {
+      res.status(500).json({ message: "Erreur lors de la connexion", error });
+  }
+
+});
+
 // Endpoint pour la connexion
-app.post('/login', async (req, res) => {
+app.post('/logins', async (req, res) => {
   const { Id_user, Mot_de_passe } = req.body;
 
   // Ajouter automatiquement @nsiaassurances.com si non présent
@@ -80,8 +146,8 @@ app.post('/login', async (req, res) => {
 
   if (Id_user === 'Biblio' && Mot_de_passe === 'Biblio') {
     // Créer un token JWT pour l'administrateur
-    const token = jwt.sign({ Id_user, Prenom: 'Administrateur', Nom: 'Bibliothequensia' }, process.env.JWT_SECRET, { expiresIn: '2s' });
-    return res.status(200).json({ message: 'Connexion réussie en tant qu\'administrateur', token, Id_user: 'Bibliothequensia', Prenom: 'Admin', Nom: 'Bibliothequensia' });
+    const token = jwt.sign({ Id_user, Prenom: 'Administrateur', Nom: 'TAMPE' }, process.env.JWT_SECRET, { expiresIn: '2s' });
+    return res.status(200).json({ message: 'Connexion réussie en tant qu\'administrateur', token, Id_user: 'TAMPE', Prenom: 'Admin', Nom: 'TAMPE' });
   }
 
   try {
@@ -158,15 +224,24 @@ app.post('/login', async (req, res) => {
     return res.status(500).json({ message: 'Erreur interne du serveur' });
   }
 });
+
+
 // Middleware pour vérifier les tokens JWT
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const token = authHeader && authHeader.split(' ')[1]; // Extraire le token après "Bearer"
 
   if (token == null) return res.sendStatus(401);
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
+    // if (err) return res.sendStatus(403);
+    if (err) {
+      if(err.name === "TokenExpiredError") {
+        return res.status(403).json({ message: "Token expiré, veuillez vous reconnecter" });
+      }
+      // JsonWebTokenError token invalide
+      return res.status(403).json({ message: "Token invalide" });
+    }
     req.user = user;
     next();
   });
@@ -225,6 +300,7 @@ app.post('/app/proposition', (req, res) => {
 });
 
 app.post('/app/reservation', (req, res) => {
+  
   const { date_emprunt, date_retour, User_Id_user, Livre_Id_livre } = req.body;
 
   const startDate = new Date(date_emprunt);
@@ -245,7 +321,7 @@ app.post('/app/reservation', (req, res) => {
     WHERE User_Id_user = ? 
   `;
   const checkUserReservationValues = [User_Id_user];
-
+  
   db.query(checkUserReservationQuery, checkUserReservationValues, (checkUserReservationError, checkUserReservationResults) => {
     if (checkUserReservationError) {
       console.error('Erreur lors de la vérification des réservations de l\'utilisateur :', checkUserReservationError);
@@ -253,12 +329,10 @@ app.post('/app/reservation', (req, res) => {
     }
 
     console.log('Résultats de la vérification des réservations de l\'utilisateur:', checkUserReservationResults);
-
+    
     if (checkUserReservationResults.length > 0) {
       return res.status(400).json({ message: 'Veuillez retourner le livre emprunter, avant de pouvoir en prendre un autre.' });
     }
-
-
 
 
     const checkUserLeservationQuery = `
@@ -281,18 +355,12 @@ app.post('/app/reservation', (req, res) => {
 
 
 
-
-
-
-
-
-
     const checkCurrentBorrowQuery = `
       SELECT * FROM emprunter 
       WHERE Livre_Id_livre = ? 
     `;
     const checkCurrentBorrowValues = [Livre_Id_livre];
-
+    
     db.query(checkCurrentBorrowQuery, checkCurrentBorrowValues, (checkCurrentBorrowError, checkCurrentBorrowResults) => {
       if (checkCurrentBorrowError) {
         console.error('Erreur lors de la vérification des emprunts en cours :', checkCurrentBorrowError);
@@ -300,7 +368,7 @@ app.post('/app/reservation', (req, res) => {
       }
 
       console.log('Résultats de la vérification des emprunts en cours:', checkCurrentBorrowResults);
-
+     
       if (checkCurrentBorrowResults.length > 0) {
         // Si un emprunt en cours est trouvé, vérifier les conflits de dates avec la file d'attente
         const queueCheckQuery = `
@@ -353,7 +421,7 @@ app.post('/app/reservation', (req, res) => {
             )
           `;
           const borrowConflictValues = [Livre_Id_livre, date_retour, date_emprunt, date_emprunt, date_retour, date_emprunt, date_retour];
-
+          
           db.query(borrowConflictQuery, borrowConflictValues, (borrowConflictError, borrowConflictResults) => {
             if (borrowConflictError) {
               console.error('Erreur lors de la vérification des emprunts existants :', borrowConflictError);
@@ -361,16 +429,19 @@ app.post('/app/reservation', (req, res) => {
             }
 
             console.log('Résultats de la vérification des emprunts existants:', borrowConflictResults);
-
+            
             if (borrowConflictResults.length > 0) {
               return res.status(400).json({ message: `Date prise mais vous pouvez resever le livre pour le ${formatDate(nextAvailableDate)}.` });
             }
-
+            
             // Ajouter à la file d'attente si aucune réservation conflictuelle
             const queueQuery = `INSERT INTO queue (date_emprunt, date_retour, User_Id_user, Livre_Id_livre) VALUES (?, ?, ?, ?)`;
             const queueValues = [date_emprunt, date_retour, User_Id_user, Livre_Id_livre];
 
             db.query(queueQuery, queueValues, (queueError, queueResults) => {
+              console.log("queueResults", queueResults)
+              // console.log("queueError", queueError)
+              // exit(1);
               if (queueError) {
                 console.error('Erreur lors de l\'ajout à la file d\'attente :', queueError);
                 return res.status(500).json({ message: 'Erreur lors de l\'ajout à la file d\'attente.' });
@@ -612,7 +683,8 @@ db.on('error', (err) => {
 
 app.get('/app/queue', (req, res) => {
   const { bookId } = req.query;
-
+  console.log("bookId", bookId)
+  console.log("req.query", req.query)
   const query = `
     SELECT q.*, u.nom AS user_nom, u.prenom AS user_prenom, l.Titre AS livre_titre
     FROM queue q

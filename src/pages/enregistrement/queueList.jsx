@@ -39,6 +39,7 @@ const QueueList = ({ bookId }) => {
         <table className="queue-table">
           <thead>
             <tr>
+              <th>Id utilisateur</th>
               <th>Nom de l'utilisateur</th>
               <th>Prénom de l'utilisateur</th>
               <th>Titre du livre</th>
@@ -48,7 +49,8 @@ const QueueList = ({ bookId }) => {
           </thead>
           <tbody>
             {queue.map((reservation) => (
-              <tr key={reservation.id}>
+              <tr key={reservation.id_queue}>
+                <td>{reservation.id_queue}</td>
                 <td>{reservation.user_nom}</td>
                 <td>{reservation.user_prenom}</td>
                 <td>{reservation.livre_titre}</td>
