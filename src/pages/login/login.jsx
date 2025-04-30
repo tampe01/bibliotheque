@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 import './login.css';
-import logo from './../../assets/images/logo (1).png';
+import logo from './../../assets/images/20402234-bibliotheque.jpg';
 
 const Login = ({ onLogin }) => {
   const [Id_user, setIdUser] = useState('');
