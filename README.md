@@ -7,7 +7,7 @@ git clone https://github.com/tampe01/bibliotheque.git
 npm install
 
 # 3/ Démarage du logiciel:
-npm start --port=4000
+npm start
 
 # 4/ Création de la base de donnée:
 -crée une base de donnée sur phpmyadmin
