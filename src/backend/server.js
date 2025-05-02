@@ -136,95 +136,6 @@ app.post("/login", async (req, res) => {
 
 });
 
-// Endpoint pour la connexion
-app.post('/logins', async (req, res) => {
-  const { Id_user, Mot_de_passe } = req.body;
-
-  // Ajouter automatiquement @nsiaassurances.com si non présent
-  const domain = '@nsiaassurances.com';
-  const username = Id_user.includes(domain) ? Id_user : `${Id_user}${domain}`;
-
-  if (Id_user === 'Biblio' && Mot_de_passe === 'Biblio') {
-    // Créer un token JWT pour l'administrateur
-    const token = jwt.sign({ Id_user, Prenom: 'Administrateur', Nom: 'TAMPE' }, process.env.JWT_SECRET, { expiresIn: '2s' });
-    return res.status(200).json({ message: 'Connexion réussie en tant qu\'administrateur', token, Id_user: 'TAMPE', Prenom: 'Admin', Nom: 'TAMPE' });
-  }
-
-  try {
-    // Configuration pour l'authentification LDAP
-    const config = {
-      url: 'ldap://10.10.4.4',
-      baseDN: 'dc=nsia,dc=com'
-    };
-
-    const ad = new ActiveDirectory(config);
-    const password = Mot_de_passe;
-
-    // Extraire le prénom et le nom de l'utilisateur
-    const regex = /^([a-zA-Z]+)\.([a-zA-Z]+)@/;
-    const matches = username.match(regex);
-
-    if (!matches || matches.length !== 3) {
-      return res.status(400).json({ message: 'Adresse e-mail non valide' });
-    }
-
-    const prenom = matches[1];
-    const nom = matches[2];
-
-    // Authenticate
-    ad.authenticate(username, password, function(err, auth) {
-      if (err) {
-        console.log('ERROR: ' + JSON.stringify(err));
-        return res.status(500).json({ message: 'Erreur d\'authentification LDAP' });
-      }
-      if (auth) {
-        // Requête SQL pour vérifier si l'utilisateur existe dans la base de données
-        db.query('SELECT * FROM utilisateur WHERE Email = ?', [username], async function(error, results, fields) {
-          if (error) {
-            console.error('Erreur lors de la vérification de l\'utilisateur dans la base de données :', error);
-            return res.status(500).json({ message: 'Erreur interne du serveur' });
-          }
-
-          // Si l'utilisateur n'existe pas dans la base de données, l'insérer
-          if (results.length === 0) {
-            try {
-              // Création de l'utilisateur dans la base de données
-              db.query('INSERT INTO utilisateur (Nom, Prenom, Email) VALUES (?, ?, ?)', [nom, prenom, username], function(err, results, fields) {
-                if (err) {
-                  console.error('Erreur lors de la création de l\'utilisateur dans la base de données :', err);
-                  return res.status(500).json({ message: 'Erreur interne du serveur' });
-                }
-                console.log('Utilisateur créé dans la base de données');
-
-                // Récupérer l'ID de l'utilisateur inséré
-                const newUserId = results.insertId;
-                // Générer le token JWT après la création de l'utilisateur
-                const token = jwt.sign({ Id_user: newUserId, username, Prenom: prenom, Nom: nom }, jwtSecret, { expiresIn: '5m' });
-                return res.status(200).json({ message: 'Connexion réussie', token, Id_user: newUserId, username, Prenom: prenom, Nom: nom });
-              });
-            } catch (error) {
-              console.error('Erreur lors de la création de l\'utilisateur dans la base de données :', error);
-              return res.status(500).json({ message: 'Erreur interne du serveur' });
-            }
-          } else {
-            // Utilisateur trouvé dans la base de données, récupérer l'ID utilisateur
-            const existingUserId = results[0].Id_user; // Assurez-vous que 'id' est bien le nom de la colonne de l'ID utilisateur dans votre table
-            // Générer le token JWT directement
-            const token = jwt.sign({ Id_user: existingUserId, username, Prenom: prenom, Nom: nom }, jwtSecret, { expiresIn: '5m' });
-            return res.status(200).json({ message: 'Connexion réussie', token, Id_user: existingUserId, username, Prenom: prenom, Nom: nom });
-          }
-        });
-      } else {
-        console.log('Authentication failed!');
-        return res.status(401).json({ message: 'Authentification échouée' });
-      }
-    });
-  } catch (error) {
-    console.error('Erreur lors de l\'authentification LDAP :', error);
-    return res.status(500).json({ message: 'Erreur interne du serveur' });
-  }
-});
-
 
 // Middleware pour vérifier les tokens JWT
 const authenticateToken = (req, res, next) => {
@@ -852,6 +763,7 @@ const job = schedule.scheduleJob('06 08 * * *', function() {
 });
 // fin email send 
 
+// Ajout de livre
 
 app.post('/app/ajout-livre', upload.single('photo'), async (req, res) => {
   const { Titre, Auteur, Date_publication, resume, genres: genresStr } = req.body;
@@ -908,8 +820,53 @@ app.post('/app/ajout-livre', upload.single('photo'), async (req, res) => {
   }
 });
 
+// Liste des livres
+app.get('/app/listeLivre', async (req, res) => {
+  const query = `SELECT * FROM livre`;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('Erreur lors de la récupération des livres:', err);
+      res.status(500).send('Erreur lors de la récupération des enregistrementss');
+    } else {
+      console.log(results)
+      res.json(results);
+    }
+  });
+});
 
 
+// delete livre
+app.delete('/app/listeLivre/:id', async (req, res) => { // Ajoutez :id à l'URL
+  try {
+    console.log('ttttt')
+    const id = req.params.id; // Récupère l'ID à partir des paramètres de la route
+    // check data exist
+    console.log('id',id)
+    const check = await db.query('SELECT count(*) as nbr FROM livre WHERE Id_livre = ?',id, async (error, results, fields) => {
+    console.log(results[0].nbr)
+
+    if (results[0].nbr > 0) {
+    // Suppression de l'élément dans la base de données
+    const result = await db.query('DELETE FROM livre WHERE Id_livre = ?', id);
+      res.status(200).json({ message: 'Suppression réussie' });
+    } else {
+      res.status(404).json({ message: 'Élément non trouvé' });
+      console.log(id);
+    }
+
+    console.log(check.length)
+      
+    });
+
+    
+  } catch (error) {
+    console.error('Erreur lors de la suppression:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+// delete reservation
 app.delete('/app/selivre/:id', async (req, res) => { // Ajoutez :id à l'URL
   try {
     console.log('ttttt')
