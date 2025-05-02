@@ -22,7 +22,7 @@ const SidebarData = ({ isAdmin }) => {
         },
         {
           title: 'Demande',
-          path: '/app/demande',
+          path: '/app/demandes',
           icon: <IoIcons.IoIosPaper/>,
           cName: 'nav-text',
           hidden: !isAdmin

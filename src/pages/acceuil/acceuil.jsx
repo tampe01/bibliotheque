@@ -10,6 +10,7 @@ import Proposition from '../proposition/Proposition';
 import Demande from '../demnde/demande';
 import Livre from '../Ajout livre/livre';
 import ListeLivre from '../listeLivre/liste';
+import LivreUpdate from '../listeLivre/update';
 import Reserver from '../reservation/reservation';
 import SeLivre from '../sortie/sortie';
 
@@ -25,6 +26,7 @@ function Acceuil() {
           <Route path="/app/demande" component={Demande}/>
           <Route path="/app/ajout-livre" component={Livre}/>
           <Route path="/app/liste-livre" component={ListeLivre}/>
+          <Route path="/app/listeupdate" component={LivreUpdate}/>
           <Route path="/app/reserver" component={Reserver}/>
           <Route path="/app/selivre" component={SeLivre}/>
         </Switch>

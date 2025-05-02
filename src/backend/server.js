@@ -897,7 +897,41 @@ app.delete('/app/selivre/:id', async (req, res) => { // Ajoutez :id à l'URL
 });
 
 
+// Update livre
+app.post('/app/listeLivreUpdate/', async (req, res) => { // Ajoutez :id à l'URL
+  const { Id_livre, ITitre, Auteur, Date_publication, resume, genres: genresStr } = req.body;
 
+  try {
+    console.log('ttttt')
+    console.log(req.params);
+    // const id = Id_livre; // Récupère l'ID à partir des paramètres de la route
+    // const Ti = Titre; // Récupère l'ID à partir des paramètres de la route
+    // check data exist
+    // console.log('id',id)
+    // console.log('id',Ti)
+    // const check = await db.query('SELECT count(*) as nbr FROM livre WHERE Id_livre = ?',id, async (error, results, fields) => {
+    // console.log(results[0].nbr)
+
+    // if (results[0].nbr > 0) {
+    // // Modification de l'élément dans la base de données
+    // // const result = await db.query('UPDATE SET `Titre`=?,`Date_publication`=?,`Auteur`=?,`statut`=?,`resume`=? FROM livre WHERE Id_livre = ?', [id]);
+    // const result = await db.query('UPDATE SET `Titre`=? FROM livre WHERE Id_livre = ?', [Titre, id]);
+    //   res.status(200).json({ message: 'Modification réussie' });
+    // } else {
+    //   res.status(404).json({ message: 'Élément non trouvé' });
+    //   console.log(id);
+    // }
+
+    // console.log(check.length)
+      
+    // });
+
+    
+  } catch (error) {
+    console.error('Erreur lors de la suppression:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
 
 
 
